@@ -1,16 +1,22 @@
-# This is a sample Python script.
+import pandas as pd
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+#Loading the data files
+
+test_genotype_file = "/home/davidenoma/Documents/MDGE612/individual_ids"
+genotype_path = "/home/davidenoma/Documents/MDGE612/call_method_54.tair9.FT10.csv"
+phenotype_path = "/home/davidenoma/Documents/MDGE612/FT10.txt"
+
+#creation of ped and fam files
+
+genotype = pd.read_csv(test_genotype_file)
+snpids = []
+for i in range(genotype.shape[0]):
+    snpids.append("SNP"+str(i))
+genotype.insert(1,'SNPIDS',snpids)
+# genotype.to_csv('/home/davidenoma/Documents/MDGE612/update_to_ind_id_file.csv')
+chrom_snp_id_
+gene_T = genotype.iloc[:,3:].transpose()
+print(gene_T)
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
 
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
