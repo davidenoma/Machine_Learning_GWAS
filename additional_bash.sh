@@ -1,7 +1,10 @@
+#!/bin/bash
 #remove first column
-cut -f2- -d"," genotype.tped  > trans.tped
+cut -f2- -d"," $1  > hold
+mv hold $1
 
 #remove first row
- awk NR\>1 final_genotype.csv > genotype.tped
+awk NR\>1 $1 > hold
+mv hold $1
 #replace comma with space
-sed -i 's/,/ /g' trans.tped
+sed -i 's/,/ /g' $1
