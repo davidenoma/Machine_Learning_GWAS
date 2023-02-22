@@ -40,34 +40,24 @@ def phenotype_cleaning():
     phenotype.insert(0, 'paternal_id', paternal_id)
     phenotype.insert(0, 'invidual_id', individual_id)
     phenotype.insert(0, 'family_id', family_id)
-
     # phenotype.to_csv(ospath+'/phenotype_recode.csv',index=False)
 
 #try to replace info on the tped file tab
 example_ped = pd.read_csv(ospath+'/example.tped',header=None,index_col=None,sep=' ')
 
-
+#Create a new tped file with duplicated alleles at each position
 new_example_ped = pd.DataFrame()
-def createFrame(snps):
-    new_frame = pd.DataFrame(columns=range(len(snps)))
-    return  new_frame
-
-
 for i in range(example_ped.shape[0]):
-    print(i)
     x = example_ped.iloc[i,4:]
     new_list = list()
     [new_list.extend([z]*2) for z in list(x)]
     if i == 0:
         new_example_ped = pd.DataFrame(new_list)
         new_example_ped = new_example_ped.transpose()
-        print(new_example_ped.shape)
     else:
         update_ped = pd.DataFrame(new_list)
         update_ped = update_ped.transpose()
         new_example_ped = new_example_ped.append(update_ped,ignore_index=True)
-new_example_ped.to_csv('new_example_tped.csv')
-print(new_example_ped)
-
+new_example_ped.to_csv(ospath+'/new_example_tped.csv')
 
 #Multiply all alleles at each postion
