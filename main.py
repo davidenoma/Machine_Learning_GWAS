@@ -43,11 +43,13 @@ def phenotype_cleaning():
     # phenotype.to_csv(ospath+'/phenotype_recode.csv',index=False)
 
 #try to replace info on the tped file tab
-example_ped = pd.read_csv(ospath+'/example.tped',header=None,index_col=None,sep=' ')
+example_ped = pd.read_csv(ospath+'/trans.tped',header=None,sep=' ')
 
 #Create a new tped file with duplicated alleles at each position
 new_example_ped = pd.DataFrame()
+
 for i in range(example_ped.shape[0]):
+    print(i)
     x = example_ped.iloc[i,4:]
     new_list = list()
     [new_list.extend([z]*2) for z in list(x)]
@@ -58,6 +60,11 @@ for i in range(example_ped.shape[0]):
         update_ped = pd.DataFrame(new_list)
         update_ped = update_ped.transpose()
         new_example_ped = new_example_ped.append(update_ped,ignore_index=True)
-new_example_ped.to_csv(ospath+'/new_example_tped.csv')
+print(example_ped.iloc[:,:4].shape,new_example_ped.shape)
+combined_final_tped = pd.merge(example_ped.iloc[:,:4],new_example_ped,left_index=True,right_index=True)
+combined_final_tped.columns=range(combined_final_tped.shape[1])
+print(combined_final_tped.shape)
+
+combined_final_tped.to_csv(ospath+'/new_trans.tped')
 
 #Multiply all alleles at each postion
