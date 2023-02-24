@@ -46,25 +46,31 @@ def phenotype_cleaning():
 example_ped = pd.read_csv(ospath+'/trans.tped',header=None,sep=' ')
 
 #Create a new tped file with duplicated alleles at each position
-new_example_ped = pd.DataFrame()
-
-for i in range(example_ped.shape[0]):
-    print(i)
-    x = example_ped.iloc[i,4:]
-    new_list = list()
-    [new_list.extend([z]*2) for z in list(x)]
-    if i == 0:
-        new_example_ped = pd.DataFrame(new_list)
-        new_example_ped = new_example_ped.transpose()
-    else:
-        update_ped = pd.DataFrame(new_list)
-        update_ped = update_ped.transpose()
-        new_example_ped = new_example_ped.append(update_ped,ignore_index=True)
-print(example_ped.iloc[:,:4].shape,new_example_ped.shape)
-combined_final_tped = pd.merge(example_ped.iloc[:,:4],new_example_ped,left_index=True,right_index=True)
-combined_final_tped.columns=range(combined_final_tped.shape[1])
-print(combined_final_tped.shape)
-
-combined_final_tped.to_csv(ospath+'/new_trans.tped')
-
 #Multiply all alleles at each postion
+new_example_ped = pd.DataFrame()
+def mulitply_alleles():
+    for i in range(example_ped.shape[0]):
+        print(i)
+        x = example_ped.iloc[i, 4:]
+        new_list = list()
+        [new_list.extend([z] * 2) for z in list(x)]
+        if i == 0:
+            new_example_ped = pd.DataFrame(new_list)
+            new_example_ped = new_example_ped.transpose()
+        else:
+            update_ped = pd.DataFrame(new_list)
+            update_ped = update_ped.transpose()
+            new_example_ped = new_example_ped.append(update_ped, ignore_index=True)
+    print(example_ped.iloc[:, :4].shape, new_example_ped.shape)
+    combined_final_tped = pd.merge(example_ped.iloc[:, :4], new_example_ped, left_index=True, right_index=True)
+    combined_final_tped.columns = range(combined_final_tped.shape[1])
+    print(combined_final_tped.shape)
+    combined_final_tped.to_csv(ospath + '/new_trans.tped')
+
+
+#Trying to insert genetic distance to tped file
+to_update_trans = pd.read_csv(ospath+'/trans.tped', sep=" ",header=None)
+
+to_update_trans.insert(2,'2',[0]*to_update_trans.shape[0])
+to_update_trans.columns = range(to_update_trans.shape[1])
+to_update_trans.to_csv(ospath+"/update_trans.tped",sep =" ",header=None)
