@@ -1,9 +1,12 @@
 import pandas as pd
-from sklearn.linear_model import LinearRegression
+from sklearn import linear_model, svm
+from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 #Loading the data files
+from xgboost import XGBRegressor
+
 ospath = "C:/Users/HP/OneDrive/Desktop/PhD._BMB/COURSE_WORK/MDGE612"
 
 test_genotype_file = ospath+"/individual_ids"
@@ -108,18 +111,24 @@ def QConPreditionFiles(genotype,phenotype):
 genotype = pd.read_csv(ospath + '/genotype2num', index_col=None)
 genotype = genotype.transpose()
 phenotype = pd.read_csv(ospath + '/phenotype.csv', index_col=None,sep="\t")
-genotype.set_axis(genotype.iloc[1,:].values,axis="columns",inplace=True)
+genotype.set_axis([str(x) for x in genotype.iloc[1,:].values],axis="columns",inplace=True)
 # genotype.columms = genotype.iloc[1,:].values
 genotype.drop(['Chromosome','Positions'],inplace=True)
 
 #read in coordinates after genotype mapping
 emmax = pd.read_csv(ospath+'/emmax_stepwise_clean/EMMAX.0_5_FT10.top')
-emmax_coord = emmax.iloc[:,1].values
+emmax_coord = [str(x) for x in emmax.iloc[:,1].values]
+
 lm = pd.read_csv(ospath+'/lm_clean/LM.0_5_FT10.top')
-lm_coord = emmax_coord = emmax.iloc[:,1].values
-X_train, X_test, y_train, y_test = train_test_split(genotype.loc[:,emmax_coord], phenotype.iloc[:,1], test_size=0.2, random_state=0)
-X_train, X_test, y_train, y_test = train_test_split(genotype.loc[:,lm_coord], phenotype.iloc[:,1], test_size=0.2, random_state=0)
+lm_coord = [str(x) for x in lm.iloc[:,1].values]
+
+#Linear Regression
+# X_train, X_test, y_train, y_test = train_test_split(genotype.loc[:,emmax_coord], phenotype.iloc[:,1], test_size=0.2, random_state=0)
+
+X_train, X_test, y_train, y_test = train_test_split(genotype.loc[:,lm_coord], phenotype.iloc[:,1].values, test_size=0.2, random_state=0)
 # Fit the linear regression model
+
+
 reg = LinearRegression().fit(X_train, y_train)
 # Predict the phenotype using the genotypes
 y_pred = reg.predict(X_test)
@@ -127,4 +136,41 @@ y_pred = reg.predict(X_test)
 mse = mean_squared_error(y_test, y_pred)
 # Print the mean squared error
 print("Mean Squared Error:", mse)
+
+#Ridge regression
+
+ridge_model = Ridge(alpha=1.0).fit(X_train, y_train)
+# Predict the phenotype using the genotypes
+y_pred = ridge_model.predict(X_test)
+# Calculate the mean squared error
+mse = mean_squared_error(y_test, y_pred)
+# Print the mean squared error
+print("Mean Squared Error:", mse)
+print(genotype.loc[:,emmax_coord].shape, len(phenotype.iloc[:,1].values))
+
+
+lasso_model = linear_model.Lasso(alpha=0.1).fit(X_train, y_train)
+# Predict the phenotype using the genotypes
+y_pred = lasso_model.predict(X_test)
+# Calculate the mean squared error
+mse = mean_squared_error(y_test, y_pred)
+# Print the mean squared error
+print("Mean Squared Error:", mse)
+
+
+#SVR
+svm_model = svm.SVR(epsilon=0.4).fit(X_train,y_train)
+# Predict the phenotype using the genotypes
+y_pred = svm_model.predict(X_test)
+# Calculate the mean squared error
+mse = mean_squared_error(y_test, y_pred)
+print("Mean Squared Error:", mse)
+
+#
+model = XGBRegressor().fit(X_train, y_train)
+y_pred = model.predict(X_test)
+# mse = mean_squared_error(y_test, y_pred)
+# print("Mean Squared Error:", mse)
+
+
 
