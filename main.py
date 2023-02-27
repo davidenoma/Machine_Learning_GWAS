@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from sklearn import linear_model, svm
 from sklearn.linear_model import LinearRegression, Ridge
@@ -117,15 +118,18 @@ genotype.drop(['Chromosome','Positions'],inplace=True)
 
 #read in coordinates after genotype mapping
 emmax = pd.read_csv(ospath+'/emmax_stepwise_clean/EMMAX.0_5_FT10.top')
-emmax_coord = [str(x) for x in emmax.iloc[:,1].values]
+#Selecting the top 100 Features affter sorting in descending order based on p-value
+emmax_coord = [str(x) for x in emmax.iloc[:100,1].values]
+
+
 
 lm = pd.read_csv(ospath+'/lm_clean/LM.0_5_FT10.top')
 lm_coord = [str(x) for x in lm.iloc[:,1].values]
 
-#Linear Regression
-# X_train, X_test, y_train, y_test = train_test_split(genotype.loc[:,emmax_coord], phenotype.iloc[:,1], test_size=0.2, random_state=0)
 
-X_train, X_test, y_train, y_test = train_test_split(genotype.loc[:,lm_coord], phenotype.iloc[:,1].values, test_size=0.2, random_state=0)
+
+#Split into train and test set
+X_train, X_test, y_train, y_test = train_test_split(genotype.loc[:,emmax_coord], phenotype.iloc[:,1].values, test_size=0.2, random_state=0)
 # Fit the linear regression model
 
 
@@ -135,7 +139,7 @@ y_pred = reg.predict(X_test)
 # Calculate the mean squared error
 mse = mean_squared_error(y_test, y_pred)
 # Print the mean squared error
-print("Mean Squared Error:", mse)
+print("Mean Squared Error: Linear Regression", mse)
 
 #Ridge regression
 
@@ -145,8 +149,8 @@ y_pred = ridge_model.predict(X_test)
 # Calculate the mean squared error
 mse = mean_squared_error(y_test, y_pred)
 # Print the mean squared error
-print("Mean Squared Error:", mse)
-print(genotype.loc[:,emmax_coord].shape, len(phenotype.iloc[:,1].values))
+print("Mean Squared Error Ridge Regression :L2 ", mse)
+
 
 
 lasso_model = linear_model.Lasso(alpha=0.1).fit(X_train, y_train)
@@ -155,7 +159,7 @@ y_pred = lasso_model.predict(X_test)
 # Calculate the mean squared error
 mse = mean_squared_error(y_test, y_pred)
 # Print the mean squared error
-print("Mean Squared Error:", mse)
+print("Mean Squared Error Lasso L1 Regression:", mse)
 
 
 #SVR
@@ -164,13 +168,17 @@ svm_model = svm.SVR(epsilon=0.4).fit(X_train,y_train)
 y_pred = svm_model.predict(X_test)
 # Calculate the mean squared error
 mse = mean_squared_error(y_test, y_pred)
-print("Mean Squared Error:", mse)
+print("Mean Squared Error(SVR):", mse)
 
 #
+X_train = X_train.to_numpy()
+X_test = X_test.to_numpy()
+print(X_test.shape,X_train.shape)
+
 model = XGBRegressor().fit(X_train, y_train)
 y_pred = model.predict(X_test)
-# mse = mean_squared_error(y_test, y_pred)
-# print("Mean Squared Error:", mse)
+mse = mean_squared_error(y_test, y_pred)
+print("Mean Squared Error (XGBOOST):", mse)
 
 
 
