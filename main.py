@@ -105,22 +105,26 @@ def QConPreditionFiles(genotype,phenotype):
 
 # Split the data into training and testing sets
 
-genotype = pd.read_csv(ospath + '/genotype.csv', index=False)
-phenotype = pd.read_csv(ospath + '/phenotype.csv', index=False,sep=" ")
-print(genotype.shape,phenotype.shape)
-#read in coordinates after genotype mapping
-X_train, X_test, y_train, y_test = train_test_split(genotype, phenotype.values, test_size=0.2, random_state=0)
+genotype = pd.read_csv(ospath + '/genotype2num', index_col=None)
+genotype = genotype.transpose()
+phenotype = pd.read_csv(ospath + '/phenotype.csv', index_col=None,sep="\t")
+genotype.set_axis(genotype.iloc[1,:].values,axis="columns",inplace=True)
+# genotype.columms = genotype.iloc[1,:].values
+genotype.drop(['Chromosome','Positions'],inplace=True)
 
+#read in coordinates after genotype mapping
+emmax = pd.read_csv(ospath+'/emmax_stepwise_clean/EMMAX.0_5_FT10.top')
+emmax_coord = emmax.iloc[:,1].values
+lm = pd.read_csv(ospath+'/lm_clean/LM.0_5_FT10.top')
+lm_coord = emmax_coord = emmax.iloc[:,1].values
+X_train, X_test, y_train, y_test = train_test_split(genotype.loc[:,emmax_coord], phenotype.iloc[:,1], test_size=0.2, random_state=0)
+X_train, X_test, y_train, y_test = train_test_split(genotype.loc[:,lm_coord], phenotype.iloc[:,1], test_size=0.2, random_state=0)
 # Fit the linear regression model
 reg = LinearRegression().fit(X_train, y_train)
-
 # Predict the phenotype using the genotypes
 y_pred = reg.predict(X_test)
-
 # Calculate the mean squared error
 mse = mean_squared_error(y_test, y_pred)
-
-
-
 # Print the mean squared error
 print("Mean Squared Error:", mse)
+
