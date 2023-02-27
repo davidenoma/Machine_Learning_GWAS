@@ -1,7 +1,10 @@
 import pandas as pd
-
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 #Loading the data files
-ospath = "C:/Users/HP/OneDrive/Desktop/PhD. BMB/COURSE_WORK/MDGE612"
+ospath = "C:/Users/HP/OneDrive/Desktop/PhD._BMB/COURSE_WORK/MDGE612"
 
 test_genotype_file = ospath+"/individual_ids"
 genotype_path = ospath+"/call_method_54.tair9.FT10.csv"
@@ -20,9 +23,9 @@ def genotype_cleaning():
     # genotype.to_csv(ospath+'/final_genotype.csv')
 
     # chrom_snp_id_gen_distance_bp = genotype.iloc[:,:3]
-    # gen_distance = [0]* genotype.shape[0]
+    gen_distance = [0]* genotype.shape[0]
     # chrom_snp_id_gen_distance_bp.insert(2,"gen distance",gen_distance)
-    # gene_T = genotype.iloc[:,3:].transpose()
+    gene_T = genotype.iloc[:,3:].transpose()
     #
     # print(chrom_snp_id_gen_distance_bp,"\n",gene_T)
 
@@ -42,12 +45,12 @@ def phenotype_cleaning():
     phenotype.insert(0, 'family_id', family_id)
     # phenotype.to_csv(ospath+'/phenotype_recode.csv',index=False)
 
-#try to replace info on the tped file tab
-example_ped = pd.read_csv(ospath+'/trans.tped',header=None,sep=' ')
-
-#Create a new tped file with duplicated alleles at each position
-#Multiply all alleles at each postion
-new_example_ped = pd.DataFrame()
+# #try to replace info on the tped file tab
+# example_ped = pd.read_csv(ospath+'/trans.tped',header=None,sep=' ')
+#
+# #Create a new tped file with duplicated alleles at each position
+# #Multiply all alleles at each postion
+# new_example_ped = pd.DataFrame()
 def mulitply_alleles():
     for i in range(example_ped.shape[0]):
         print(i)
@@ -69,8 +72,55 @@ def mulitply_alleles():
 
 
 #Trying to insert genetic distance to tped file
-to_update_trans = pd.read_csv(ospath+'/trans.tped', sep=" ",header=None)
+# to_update_trans = pd.read_csv(ospath+'/trans.tped', sep=" ",header=None)
+# to_update_trans.insert(2,'2',[0]*to_update_trans.shape[0])
+# to_update_trans.columns = range(to_update_trans.shape[1])
+# to_update_trans.to_csv(ospath+"/update_trans.tped",sep =" ",header=None)
+def saveToDisk(genotype,phenotype):
+    genotype.to_csv(ospath + '/genotype.csv', index=False)
+    phenotype.to_csv(ospath + '/phenotype.csv', index=False, sep=" ")
 
-to_update_trans.insert(2,'2',[0]*to_update_trans.shape[0])
-to_update_trans.columns = range(to_update_trans.shape[1])
-to_update_trans.to_csv(ospath+"/update_trans.tped",sep =" ",header=None)
+def QConPreditionFiles(genotype,phenotype):
+    genotype = pd.read_csv(genotype_path)
+    phenotype = pd.read_csv(phenotype_path, sep="\t")
+    phenotype = phenotype.dropna()
+
+    true_pheno = phenotype.iloc[:, 0].values
+    index = [str(x) for x in true_pheno]
+    i = 2
+
+    while i < len(genotype.columns):
+        if genotype.columns[i] not in index:
+            genotype.drop(columns=genotype.columns[i], inplace=True)
+        i = i + 1
+    while i < len(index):
+        if index[i] not in genotype.columns:
+            # final_index.append(index[i])
+            print(index)
+            index.remove(index[i])
+        i = i + 1
+    print(genotype.shape, phenotype.shape)
+    return genotype,phenotype
+
+
+# Split the data into training and testing sets
+
+genotype = pd.read_csv(ospath + '/genotype.csv', index=False)
+phenotype = pd.read_csv(ospath + '/phenotype.csv', index=False,sep=" ")
+print(genotype.shape,phenotype.shape)
+#read in coordinates after genotype mapping
+X_train, X_test, y_train, y_test = train_test_split(genotype, phenotype.values, test_size=0.2, random_state=0)
+
+# Fit the linear regression model
+reg = LinearRegression().fit(X_train, y_train)
+
+# Predict the phenotype using the genotypes
+y_pred = reg.predict(X_test)
+
+# Calculate the mean squared error
+mse = mean_squared_error(y_test, y_pred)
+
+
+
+# Print the mean squared error
+print("Mean Squared Error:", mse)
