@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from xgboost import XGBRegressor
 
-ospath = "C:/Users/HP/OneDrive/Desktop/PhD._BMB/COURSE_WORK/MDGE612"
+ospath = "/home/davidenoma/Documents/MDGE612"
 
 
 genotype_path = ospath+"/call_method_54.tair9.FT10.csv"
@@ -17,21 +17,23 @@ phenotype_path = ospath+"/FT10.txt"
 #File specification at: https://zzz.bwh.harvard.edu/plink/data.shtml
 def genotype_cleaning():
     genotype = pd.read_csv(genotype_path)
-    snpids = []
-    for i in range(genotype.shape[0]):
-        snpids.append("SNP" + str(i))
-    genetic_distance = [0] * genotype.shape[0]
-    genotype.insert(1, 'SNPIDS', snpids)
-    chrom_snp_id_gen_distance_bp = genotype.iloc[:,:3]
-    gen_distance = [0]* genotype.shape[0]
-    chrom_snp_id_gen_distance_bp.insert(2,"gen distance",gen_distance)
+    # snpids = []
+    # for i in range(genotype.shape[0]):
+    #     snpids.append("SNP" + str(i))
+
+    gen_distance = [0] * genotype.shape[0]
+    genotype.insert(2,"gen distance",gen_distance)
+    chrom_snp_id_gen_distance_bp = genotype.iloc[:,:4]
     gene_T = genotype.iloc[:,3:].transpose()
 
+    print(gene_T.shape, chrom_snp_id_gen_distance_bp.head())
+    # final_genotype = pd.concat([chrom_snp_id_gen_distance_bp,gene_T],axis=1)
+    # print(final_genotype.head(),final_genotype.shape)
 
 
 
 def phenotype_cleaning():
-    phenotype = pd.read_csv(phenotype_path, index_col=None)
+    phenotype = pd.read_csv(phenotype_path, index_col=None, sep="\t")
     # #preparing the phenotype file
     family_id = [1] * phenotype.shape[0]
     individual_id = [0] * phenotype.shape[0]
@@ -42,6 +44,8 @@ def phenotype_cleaning():
     phenotype.insert(0, 'paternal_id', paternal_id)
     phenotype.insert(0, 'invidual_id', individual_id)
     phenotype.insert(0, 'family_id', family_id)
+
+    # print(phenotype.head(),phenotype.shape)
     # phenotype.to_csv(ospath+'/phenotype_recode.csv',index=False)
 
 # #Create a new tped file with duplicated alleles at each position
@@ -158,6 +162,9 @@ def modelling():
     mse = mean_squared_error(y_test, y_pred)
     print("Mean Squared Error (XGBOOST):", mse)
 
+#Implementation line
+genotype_cleaning()
+phenotype_cleaning()
 
 
 
