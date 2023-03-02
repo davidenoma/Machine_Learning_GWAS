@@ -17,16 +17,14 @@ phenotype_path = ospath+"/FT10.txt"
 def genotype_cleaning():
     genotype = pd.read_csv(genotype_path)
     # snpids = []
-    # for i in range(genotype.shape[0]):
-    #     snpids.append("SNP" + str(i))
+    # for i in range(genotype.shape[0]):     #     snpids.append("SNP" + str(i))
 
     gen_distance = [0] * genotype.shape[0]
     genotype.insert(2,"gen distance",gen_distance)
+    genotype.to_csv("genotypo.tped")
     chrom_snp_id_gen_distance_bp = genotype.iloc[:,:4]
-    gene_T = genotype.iloc[:,3:].transpose()
-
-    print(gene_T.shape, chrom_snp_id_gen_distance_bp.head())
-    # final_genotype = pd.concat([chrom_snp_id_gen_distance_bp,gene_T],axis=1)
+    # print(genotype.head())
+    # final_genotype = pd.concat([chrom_snp_id_gen_distance_bp,genotype.iloc[1:,1:]],axis=1)
     # print(final_genotype.head(),final_genotype.shape)
 
 
@@ -43,9 +41,7 @@ def phenotype_cleaning():
     phenotype.insert(0, 'paternal_id', paternal_id)
     phenotype.insert(0, 'invidual_id', individual_id)
     phenotype.insert(0, 'family_id', family_id)
-
-    # print(phenotype.head(),phenotype.shape)
-    # phenotype.to_csv(ospath+'/phenotype_recode.csv',index=False)
+    phenotype.to_csv(ospath+'/phenotype_recode.csv',index=False,sep=" ")
 
 # #Create a new tped file with duplicated alleles at each position
 # #Multiply all alleles at each postion
@@ -72,8 +68,8 @@ def saveToDisk(genotype,phenotype):
     phenotype.to_csv(ospath + '/phenotype.csv', index=False, sep=" ")
 
 def QConPreditionFiles(genotype,phenotype):
-    genotype = pd.read_csv(genotype_path)
-    phenotype = pd.read_csv(phenotype_path, sep="\t")
+    genotype = pd.read_csv(genotype)
+    phenotype = pd.read_csv(phenotype, sep=" ")
     phenotype = phenotype.dropna()
 
     true_pheno = phenotype.iloc[:, 0].values
@@ -88,7 +84,7 @@ def QConPreditionFiles(genotype,phenotype):
         if index[i] not in genotype.columns:
             index.remove(index[i])
         i = i + 1
-    print(genotype.shape, phenotype.shape)
+
     return genotype,phenotype
 
 
@@ -163,7 +159,11 @@ def modelling():
 
 #Implementation line
 genotype_cleaning()
+
 phenotype_cleaning()
+genotype_clean, phenotype_clean = QConPreditionFiles(genotype=genotype_path,phenotype=ospath+'/phenotype_recode.csv')
+print(genotype_clean.head(),phenotype_clean.head())
+print(genotype_clean.shape,phenotype_clean.shape)
 
 
 
