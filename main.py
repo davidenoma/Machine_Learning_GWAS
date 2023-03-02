@@ -9,7 +9,6 @@ from xgboost import XGBRegressor
 
 ospath = "/home/davidenoma/Documents/MDGE612"
 
-
 genotype_path = ospath+"/call_method_54.tair9.FT10.csv"
 phenotype_path = ospath+"/FT10.txt"
 
