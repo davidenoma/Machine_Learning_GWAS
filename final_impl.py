@@ -9,7 +9,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.neural_network import MLPRegressor
 from xgboost import XGBRegressor
 
-ospath = "C:/Users/HP/OneDrive/Desktop/PhD._BMB/COURSE_WORK/MDGE612"
+ospath = "/home/davidenoma/Documents/MDGE612"
 #/home/davidenoma/Documents/MDGE612
 
 genotype_path = ospath+"/call_method_54.tair9.FT10.csv"
@@ -45,16 +45,11 @@ def QConPreditionFiles(genotype,phenotype):
 def removeMAF(genotype_path):
 
     genotype = pd.read_csv(genotype_path, index_col=None)
-    # print(genotype.head(),genotype.index)
-    # genotype.drop(1,inplace=True)
-    # print(genotype.head(), genotype.index)
-
     print('Before removing single snps with only one allele accross all samples:',genotype.shape)
     #remove snps with MAF less than 0.05
     i = 0
     while i < genotype.shape[0]:
         snps = genotype.iloc[i,2:].values
-        print(snps)
         unique_items = set(snps)
         if (len(unique_items) != 2):
             genotype = genotype.drop(i)
@@ -62,25 +57,21 @@ def removeMAF(genotype_path):
     print('After removing single snps with only one allele accross all samples:',genotype.shape)
     print('Before removing snps with MAF less than 0.05:',genotype.shape)
     genotype.set_axis([x for x in range(genotype.shape[0])], axis=0, inplace=True)
+
     i=0
-    # print(head(genotype))
     while i < genotype.shape[0]:
         snps = genotype.iloc[i, 2:].values
         unique_items = set(snps)
         individual_snps = len(snps)
-        # if snps not in ['A','T','G','C']:
-        #     genotype = genotype.drop(i)
         if (len(unique_items) == 2):
-            print(unique_items)
             snp1 = list(snps).count(list(unique_items)[0])
             snp2 = list(snps).count(list(unique_items)[1])
             if (snp1 / individual_snps < 0.05) or (snp2 / individual_snps < 0.05):
                 genotype = genotype.drop(i)
                 print(i, snp1 / individual_snps, snp2 / individual_snps)
         i = i + 1
-    print('After removing snps with MAF'
-          ' less than 0.05:',genotype.shape)
-    genotype.to_csv(ospath + '/genotype_final_aftet_maf.csv', index_label=None, index=False)
+    print('After removing snps with MAF less than 0.05:',genotype.shape)
+    genotype.to_csv(ospath + '/genotype_final_after_maf.csv', index_label=None, index=False)
     return genotype
 
 
@@ -96,7 +87,6 @@ def modelling():
     genotype = genotype.transpose()
     phenotype = pd.read_csv(ospath + '/phenotype_final.txt', index_col=None, sep="\t")
     genotype.set_axis([str(x) for x in genotype.iloc[1, :].values], axis="columns", inplace=True)
-
     genotype.drop(['Chromosome', 'Positions'], inplace=True)
     # read in coordinates after genotype mapping
 
@@ -223,4 +213,8 @@ def modelling():
 
 #Implementation line
 # modelling()
+genotype,phenotype = QConPreditionFiles(genotype_path,phenotype_path)
+write_to_file(genotype,phenotype)
 removeMAF(genotype_path=ospath+'/genotype_final.csv')
+
+
