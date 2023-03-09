@@ -15,9 +15,9 @@ java -Xmx2g -jar Jawamix5/jawamix5.jar char2num -ig genotype.csv -o genotype2num
 #convert genotye tp hdf5
 java -Xmx2g -jar Jawamix5/jawamix5.jar import -ig genotype2num -o genohdf5
 #reate kinship matrix
-java -Xmx2g -jar Jawamix5/jawamix5.jar kinship -ig genohdf5 -o kinship_clean/
+java -Xmx2g -jar Jawamix5/jawamix5.jar kinship -ig genohdf5_final -o kinship_final/
 
 #Run Genome wide linear regression for phenotype(s)
-java -Xmx2g -jar Jawamix5/jawamix5.jar lm -ig genohdf5 -ip phenotype.csv -o lm_clean/ -ik kinship_clean/.rescaled.IBS
-java -Xmx2g -jar Jawamix5/jawamix5.jar emmax_stepwise -ig genohdf5 -ip phenotype.csv -o emmax_stepwise_clean/ -ik kinship_clean/.rescaled.IBS
+java -Xmx2g -jar Jawamix5/jawamix5.jar lm -ig genohdf5_final -ip phenotype_final.txt -o lm_final/ -ik kinship_final/.rescaled.IBS
+java -Xmx2g -jar Jawamix5/jawamix5.jar emmax_stepwise -ig genohdf5_final -ip phenotype_final.txt -o emmax_final/ -ik kinship_final/.rescaled.IBS
 
