@@ -43,29 +43,43 @@ def QConPreditionFiles(genotype,phenotype):
     return genotype,phenotype
 
 def removeMAF(genotype_path):
+
     genotype = pd.read_csv(genotype_path, index_col=None)
+    # print(genotype.head(),genotype.index)
+    # genotype.drop(1,inplace=True)
+    # print(genotype.head(), genotype.index)
+
     print('Before removing single snps with only one allele accross all samples:',genotype.shape)
     #remove snps with MAF less than 0.05
     i = 0
     while i < genotype.shape[0]:
         snps = genotype.iloc[i,2:].values
+        print(snps)
         unique_items = set(snps)
         if (len(unique_items) != 2):
             genotype = genotype.drop(i)
+        i = i + 1
     print('After removing single snps with only one allele accross all samples:',genotype.shape)
     print('Before removing snps with MAF less than 0.05:',genotype.shape)
+    genotype.set_axis([x for x in range(genotype.shape[0])], axis=0, inplace=True)
     i=0
+    # print(head(genotype))
     while i < genotype.shape[0]:
         snps = genotype.iloc[i, 2:].values
         unique_items = set(snps)
         individual_snps = len(snps)
-        snp1 = list(snps).count(list(unique_items)[0])
-        snp2 = list(snps).count(list(unique_items)[1])
-        if (snp1 / individual_snps < 0.05) or (snp2 / individual_snps < 0.05):
-            genotype = genotype.drop(i)
-            print(snp1, snp2, snp1 / individual_snps, snp2 / individual_snps)
+        # if snps not in ['A','T','G','C']:
+        #     genotype = genotype.drop(i)
+        if (len(unique_items) == 2):
+            print(unique_items)
+            snp1 = list(snps).count(list(unique_items)[0])
+            snp2 = list(snps).count(list(unique_items)[1])
+            if (snp1 / individual_snps < 0.05) or (snp2 / individual_snps < 0.05):
+                genotype = genotype.drop(i)
+                print(i, snp1 / individual_snps, snp2 / individual_snps)
         i = i + 1
-    print('After removing snps with MAF less than 0.05:',genotype.shape)
+    print('After removing snps with MAF'
+          ' less than 0.05:',genotype.shape)
     genotype.to_csv(ospath + '/genotype_final_aftet_maf.csv', index_label=None, index=False)
     return genotype
 
