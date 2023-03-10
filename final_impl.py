@@ -1,20 +1,23 @@
-import numpy as np
+from multiprocessing import freeze_support
+
 import pandas as pd
 from sklearn import linear_model, svm
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
 from sklearn.neural_network import MLPRegressor
 from xgboost import XGBRegressor
+import statsmodels.api as sm
+from scipy import stats
+import multiprocessing
 
-ospath = "/home/davidenoma/Documents/MDGE612"
-#/home/davidenoma/Documents/MDGE612
+
+ospath = "C:/Users/HP/OneDrive/Desktop/PhD._BMB/COURSE_WORK/MDGE612/"
+# /home/davidenoma/Documents/MDGE612
 
 genotype_path = ospath+"/call_method_54.tair9.FT10.csv"
 phenotype_path = ospath+"/FT10.txt"
-
 
 def QConPreditionFiles(genotype,phenotype):
     genotype = pd.read_csv(genotype,index_col=None)
@@ -68,6 +71,7 @@ def removeMAF(genotype_path):
             snp2 = list(snps).count(list(unique_items)[1])
             if (snp1 / individual_snps < 0.05) or (snp2 / individual_snps < 0.05):
                 genotype = genotype.drop(i)
+
                 print(i, snp1 / individual_snps, snp2 / individual_snps)
         i = i + 1
     print('After removing snps with MAF less than 0.05:',genotype.shape)
@@ -76,10 +80,33 @@ def removeMAF(genotype_path):
 
 
 def write_to_file(genotype,phenotype):
-
     #This is neccessary to perform genome-wide association mapping  with Jawamax
     genotype.to_csv(ospath+'/genotype_final.csv',index_label=None,index=False)
     phenotype.to_csv(ospath+'/phenotype_final.txt',sep='\t',index_label=None,index=False)
+
+
+def OLS_GWAS():
+    genotype = pd.read_csv(ospath + '/genotype2num_final', index_col=None)
+    # genotype = pd.read_csv(ospath + '/genotype2num_final', index_col=None)
+    genotype = genotype.transpose()
+    phenotype = pd.read_csv(ospath + '/phenotype_final.txt', index_col=None, sep="\t")
+    phenotype = phenotype.iloc[:, 1].values
+    genotype.set_axis([str(x) for x in genotype.iloc[1, :].values], axis="columns", inplace=True)
+    genotype.drop(['Chromosome', 'Positions'], inplace=True)
+    # read in coordinates after genotype mapping
+    # add constant to X for intercept term
+    print(phenotype.shape,genotype.shape)
+    genotype = sm.add_constant(genotype)
+    # fit OLS model
+    model = sm.OLS(phenotype, genotype).fit()
+
+    print(model.summary())
+    output = pd.DataFrame(
+        {'coefficients': model.params, 'std_error': model.bse, 't_values': model.tvalues, 'p_values': model.pvalues})
+    output.index = genotype.columns
+    # print output
+    print(output)
+
 
 def modelling():
     # Split the data into training and testing sets
@@ -213,8 +240,9 @@ def modelling():
 
 #Implementation line
 # modelling()
-genotype,phenotype = QConPreditionFiles(genotype_path,phenotype_path)
-write_to_file(genotype,phenotype)
-removeMAF(genotype_path=ospath+'/genotype_final.csv')
+# genotype,phenotype = QConPreditionFiles(genotype_path,phenotype_path)
+# write_to_file(genotype,phenotype)
 
+
+OLS_GWAS()
 
