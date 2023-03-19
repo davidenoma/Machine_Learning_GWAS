@@ -43,118 +43,149 @@ def QConPreditionFiles(genotype,phenotype):
 
     return genotype,phenotype
 
-def modelling():
-    # Split the data into training and testing sets
-    genotype = pd.read_csv(ospath + '/updated_recode_file', index_col=None)
+
+def OLS_GWAS():
+    genotype = pd.read_csv(ospath + '/genotype_final_after_maf_recode', index_col=None)
+    # genotype = pd.read_csv(ospath + '/genotype2num_final', index_col=None)
     genotype = genotype.transpose()
-
-
-    # Print the explained variance ratios of the principal components
-
-    phenotype = pd.read_csv(ospath + '/phenotype_for_jawa', index_col=None, sep="\t")
+    phenotype = pd.read_csv(ospath + '/phenotype_final.txt', index_col=None, sep="\t")
+    phenotype = phenotype.iloc[:, 1].values
     genotype.set_axis([str(x) for x in genotype.iloc[1, :].values], axis="columns", inplace=True)
-    # genotype.columms = genotype.iloc[1,:].values
     genotype.drop(['Chromosome', 'Positions'], inplace=True)
     # read in coordinates after genotype mapping
-    emmax = pd.read_csv(ospath + '/emmax_step_wise_manual_recode/EMMAX.0_5_FT10.top.csv')
+    # add constant to X for intercept term
 
+    emmax = pd.read_csv(ospath + '/emmax_maf/EMMAX.0_5_FT10.top.csv')
     # Selecting the top 100 Features affter sorting in ascending order based on p-value
     ##The sorting was done on excel.
-    emmax_coord = [str(x) for x in emmax.iloc[:19, 1].values]
+    emmax_coord = [str(x) for x in emmax.iloc[:300, 1].values]
 
-    lm = pd.read_csv(ospath+'/lm_manual_recode/LM.0_5_FT10.top.csv')
-    lm_coord = [str(x) for x in lm.iloc[:49,1].values]
+    genotype = genotype.loc[:,emmax_coord].to_numpy()
+    print(genotype.shape,phenotype.shape)
+    genotype= sm.add_constant(genotype)
+    # fit OLS model
+    model = sm.OLS(phenotype, genotype).fit()
+    print(model.summary())
+    output = pd.DataFrame(
+        {'coefficients': model.params, 'std_error': model.bse, 't_values': model.tvalues, 'p_values': model.pvalues})
+    # output.index = genotype.columns
+    # print output
+    print(output.head())
 
-    # Split into train and test set
-    X_train, X_test, y_train, y_test = train_test_split(genotype, phenotype.iloc[:, 1].values,
-                                                        test_size=0.2, random_state=0)
-    pca = PCA(n_components=100)
-    X_train_pca = pca.fit_transform(X_train)
-    X_test_pca = pca.transform(X_test)
-    print(pca.explained_variance_ratio_)
-    # Create a LinearRegression object and fit it to the transformed training data
-    lr = LinearRegression()
-    lr.fit(X_train_pca, y_train)
-    # Make predictions on the transformed testing data
-    y_pred = lr.predict(X_test_pca)
-    # Calculate the mean squared error of the predictions
-    mse = mean_squared_error(y_test, y_pred)
-    r_squared = r2_score(y_test, y_pred)
-    print(f"Mean Squared Error PCA: {mse:.2f}","Rsquared: ",r_squared)
+
+def modelling():
+    # Split the data into training and testing sets
+    genotype = pd.read_csv(ospath + '/genotype_final_after_maf', index_col=None)
+    genotype = genotype.transpose()
+    phenotype = pd.read_csv(ospath + '/phenotype_final.txt', index_col=None, sep="\t")
+    genotype.set_axis([str(x) for x in genotype.iloc[1, :].values], axis="columns", inplace=True)
+    genotype.drop(['Chromosome', 'Positions'], inplace=True)
+    # read in coordinates after genotype mapping
+
+
+    emmax = pd.read_csv(ospath + '/emmax_maf/EMMAX.0_5_FT10.top.csv')
+    # Selecting the top 100 Features affter sorting in ascending order based on p-value
+    ##The sorting was done on excel.
+    emmax_coord = [str(x) for x in emmax.iloc[:, 1].values]
+    lm = pd.read_csv(ospath+'/lm_maf/LM.0_5_FT10.top.csv')
+    lm_coord = [str(x) for x in lm.iloc[:4200,1].values]
+
+
+    # emmax_geno_for_R = genotype.loc[:,emmax_coord]
+    # print(emmax_geno_for_R.head(),emmax_geno_for_R.to_csv(ospath+'emmax_index_genotype.csv',index_label=None,index=False))
 
     # Split into train and test set
     X_train, X_test, y_train, y_test = train_test_split(genotype.loc[:,emmax_coord], phenotype.iloc[:, 1].values,
-                                                        test_size=0.2, random_state=0)
+                                                   test_size=0.2, random_state=0)
 
-    # Fit the linear regression model
-    reg = LinearRegression().fit(X_train, y_train)
+    max_index, pcs = PCA_impl(X_test, X_train, y_test, y_train)
+    pca = PCA(n_components=pcs[max_index], svd_solver='full')
+    X_train_pca = pca.fit_transform(X_train)
+    X_test_pca = pca.transform(X_test)
+    # print(pca.explained_variance_ratio_)
+
+    reg = LinearRegression().fit(X_train_pca, y_train)
     # Predict the phenotype using the genotypes
-    y_pred = reg.predict(X_test)
+    y_pred = reg.predict(X_test_pca)
     # Calculate the mean squared error
     mse = mean_squared_error(y_test, y_pred)
     # Print the mean squared error
-    print(f"Mean Squared Error: Linear Regression: {mse:.2f}")
+    # print("Mean Squared Error: Linear Regression", mse)
     # Calculate R-squared
     r_squared = r2_score(y_test, y_pred)
-    print(f"R-squared for : Linear Regression {r_squared:.2f}")
+    # print("R-squared for : Linear Regression", r_squared)
     print("\n")
+
+    alphas =  np.arange(0, 10.001, 0.001).tolist()
+    r2s_l1 =[]
+    r2s_l2 = []
+    r2s_l1,r2s_l2 = OptimizeAlpha(X_test_pca, X_train_pca, alphas,r2s_l1,r2s_l2,y_test, y_train)
+    print(max(r2s_l1),alphas[r2s_l1.index(max(r2s_l1))])
+    print(max(r2s_l2),alphas[r2s_l2.index(max(r2s_l2))])
+
+    #Lasso
+    lasso_r2s_scores = []
+    for i in range(0,1000):
+        lasso_model = linear_model.Lasso(alpha=alphas[r2s_l1.index(max(r2s_l1))]).fit(X_train_pca, y_train)
+        # Predict the phenotype using the genotypes
+        y_pred = lasso_model.predict(X_test_pca)
+        # Calculate the mean squared error
+        mse = mean_squared_error(y_test, y_pred)
+        # Print the mean squared error
+        # print("Mean Squared Error Lasso L1 Regression:", mse)
+        # Calculate R-squared
+        r_squared = r2_score(y_test, y_pred)
+        lasso_r2s_scores.append(r_squared)
+        # print("R-squared for Lasso L1 Regression:", r_squared)
+
     # Ridge regression
+    ridge_r2s_scores = []
 
-    ridge_model = Ridge(alpha=1.0).fit(X_train, y_train)
-    # Predict the phenotype using the genotypes
-    y_pred = ridge_model.predict(X_test)
-    # Calculate the mean squared error
-    mse = mean_squared_error(y_test, y_pred)
-    # Print the mean squared error
-    print(f"Mean Squared Error: Ridge Regression L2: {mse:.2f}")
+    for i in range(0,1000):
+        ridge_model = Ridge(alpha=alphas[r2s_l2.index(max(r2s_l2))]).fit(X_train_pca, y_train)
+        # Predict the phenotype using the genotypes
+        y_pred = ridge_model.predict(X_test_pca)
+        # Calculate the mean squared error
+        mse = mean_squared_error(y_test, y_pred)
+        # Print the mean squared error
+        # print("Mean Squared Error Ridge Regression :L2 ", mse)
+        # Calculate R-squared
+        r_squared = r2_score(y_test, y_pred)
+        ridge_r2s_scores.append(r_squared)
+        # print("R-squared for Ridge Regression L2: ", r_squared)
+        # print("\n")
+    print( mean(lasso_r2s_scores),mean(ridge_r2s_scores),max(lasso_r2s_scores),max(ridge_r2s_scores))
+    return
 
-    # Calculate R-squared
-    r_squared = r2_score(y_test, y_pred)
-    print(f"R-squared for Ridge Regression L2:  {r_squared:.2f}")
-    print("\n")
-
-    lasso_model = linear_model.Lasso(alpha=0.1).fit(X_train, y_train)
-    # Predict the phenotype using the genotypes
-    y_pred = lasso_model.predict(X_test)
-    # Calculate the mean squared error
-    mse = mean_squared_error(y_test, y_pred)
-    # Print the mean squared error
-    print(f"Mean Squared Error Lasso L1 Regression: { mse:.2f}")
-    # Calculate R-squared
-    r_squared = r2_score(y_test, y_pred)
-    print(f"R-squared for Lasso L1 Regression: {r_squared:.2f}")
-    print("\n")
 
     # SVR
-    svm_model = svm.SVR(epsilon=0.4).fit(X_train, y_train)
+    svm_model = svm.SVR(epsilon=0.2).fit(X_train_pca, y_train)
     # Predict the phenotype using the genotypes
-    y_pred = svm_model.predict(X_test)
+    y_pred = svm_model.predict(X_test_pca)
     # Calculate the mean squared error
     mse = mean_squared_error(y_test, y_pred)
-    print(f"Mean Squared Error(SVR): {mse:.2f}")
+    print("Mean Squared Error(SVR):", mse)
     # Calculate R-squared
     r_squared = r2_score(y_test, y_pred)
-    print(f"R-squared for SVR: {r_squared:.2f}")
+    print("R-squared for SVR:", r_squared)
     print("\n")
-
-
-
 
     #For complex models, it might be useful to have more features
     # Split into train and test set
-    emmax_coord = [str(x) for x in emmax.iloc[:, 1].values]
-    lm_coord = [str(x) for x in lm.iloc[:1999, 1].values]
-    X_train, X_test, y_train, y_test = train_test_split(genotype.loc[:, emmax_coord], phenotype.iloc[:, 1].values,                                                        test_size=0.2, random_state=0)
+    # emmax_coord = [str(x) for x in emmax.iloc[:, 1].values]
+    # lm_coord = [str(x) for x in lm.iloc[:1999, 1].values]
+    # X_train, X_test, y_train, y_test = train_test_split(genotype.loc[:, emmax_coord], phenotype.iloc[:, 1].values,
+    #                                                     test_size=0.2, random_state=0)
 
-    model = XGBRegressor().fit(X_train.to_numpy(), y_train)
-    y_pred = model.predict(X_test.to_numpy())
+    model = XGBRegressor().fit(X_train_pca, y_train)
+    y_pred = model.predict(X_test_pca)
     mse = mean_squared_error(y_test,y_pred)
     print("Mean Squared Error (XGBOOST):", mse)
     # Calculate R-squared
     r_squared = r2_score(y_test, y_pred)
     print("R-squared for XGBOOST:", r_squared)
     print("\n")
-
+    return
     # For complex models, it might be useful to have more features
     # Split into train and test set
     emmax_coord = [str(x) for x in emmax.iloc[:, 1].values]
@@ -176,6 +207,59 @@ def modelling():
     mse = mean_squared_error(y_test, y_pred)
     print("Mean Squared Error ( Neural network:):", mse)
     print("\n")
+
+
+def OptimizeAlpha(X_test_pca, X_train_pca, alphas, r2s_l1,r2s_l2, y_test, y_train):
+
+    for i in range(len(alphas)):
+        lasso_model = linear_model.Lasso(alpha=alphas[i]).fit(X_train_pca, y_train)
+        # Predict the phenotype using the genotypes
+        y_pred = lasso_model.predict(X_test_pca)
+        # Calculate the mean squared error
+        mse = mean_squared_error(y_test, y_pred)
+        # Print the mean squared error
+        # print("Mean Squared Error Lasso L1 Regression:", mse)
+        # Calculate R-squared
+        r_squared = r2_score(y_test, y_pred)
+        r2s_l1.append(r_squared)
+        # print("R-squared for Lasso L1 Regression:", r_squared)
+    # Ridge regression
+
+    for i in range(len(alphas)):
+        ridge_model = Ridge(alpha=alphas[i]).fit(X_train_pca, y_train)
+        # Predict the phenotype using the genotypes
+        y_pred = ridge_model.predict(X_test_pca)
+        # Calculate the mean squared error
+        mse = mean_squared_error(y_test, y_pred)
+        # Print the mean squared error
+        # print("Mean Squared Error Ridge Regression :L2 ", mse)
+        # Calculate R-squared
+        r_squared = r2_score(y_test, y_pred)
+        r2s_l2.append(r_squared)
+        # print("R-squared for Ridge Regression L2: ", r_squared)
+        # print("\n")
+    return  r2s_l1,r2s_l2
+
+
+def PCA_impl(X_test, X_train, y_test, y_train):
+    r2s = []
+    pcs = []
+    for i in range(10, 120):
+        # # Fit the linear regression model
+        pca = PCA(n_components=i, svd_solver='full')
+        X_train_pca = pca.fit_transform(X_train)
+        X_test_pca = pca.transform(X_test)
+        lr = LinearRegression()
+        lr.fit(X_train_pca, y_train)
+        y_pred = lr.predict(X_test_pca)
+        mse = mean_squared_error(y_test, y_pred)
+        r_squared = r2_score(y_test, y_pred)
+        r2s.append(r_squared)
+        pcs.append(i)
+    max_index = r2s.index(max(r2s))
+    print(len(pcs), len(r2s), max(r2s), pcs[max_index])
+    return max_index, pcs
+
 
 #Implementation line
 modelling()
